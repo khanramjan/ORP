@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: assignment_db
+    restart: always
+    environment:
+      POSTGRES_DB: assignment_ms
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: assignment_api
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Database=assignment_ms;Username=postgres;Password=postgrespassword
+      - Jwt__Secret=SuperSecretKeyForJwtTokenGeneration2026AssignmentMSApp!
+      - Jwt__Issuer=AssignmentMS.API
+      - Jwt__Audience=AssignmentMS.Frontend
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: assignment_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
