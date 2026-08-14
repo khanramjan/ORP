@@ -3,213 +3,158 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { AssignmentItem, ClassItem, SubjectItem, SubmissionItem, AssignmentStatus } from '@/types';
-import { Plus, Eye, Trash2, CheckSquare, FileCheck } from 'lucide-react';
+import { Plus, Eye, Trash2, CheckSquare, X, Award } from 'lucide-react';
 
 export default function TeacherAssignmentsPage() {
-  const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [subjects, setSubjects] = useState<SubjectItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [assignments,    setAssignments]    = useState<AssignmentItem[]>([]);
+  const [classes,        setClasses]        = useState<ClassItem[]>([]);
+  const [subjects,       setSubjects]       = useState<SubjectItem[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [showCreate,     setShowCreate]     = useState(false);
+  const [showReview,     setShowReview]     = useState(false);
+  const [title,          setTitle]          = useState('');
+  const [description,    setDescription]    = useState('');
+  const [classId,        setClassId]        = useState('');
+  const [subjectId,      setSubjectId]      = useState('');
+  const [maxMarks,       setMaxMarks]       = useState(100);
+  const [deadline,       setDeadline]       = useState('');
+  const [status,         setStatus]         = useState<AssignmentStatus>('Draft');
+  const [allowLate,      setAllowLate]      = useState(false);
+  const [formError,      setFormError]      = useState('');
+  const [activeAssign,   setActiveAssign]   = useState<AssignmentItem | null>(null);
+  const [submissions,    setSubmissions]    = useState<SubmissionItem[]>([]);
+  const [selectedSub,    setSelectedSub]    = useState<SubmissionItem | null>(null);
+  const [marksInput,     setMarksInput]     = useState(0);
+  const [feedbackInput,  setFeedbackInput]  = useState('');
 
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showReviewModal, setShowReviewModal] = useState(false);
-
-  // Assignment Form State
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [classId, setClassId] = useState('');
-  const [subjectId, setSubjectId] = useState('');
-  const [maxMarks, setMaxMarks] = useState<number>(100);
-  const [deadline, setDeadline] = useState('');
-  const [status, setStatus] = useState<AssignmentStatus>('Draft');
-  const [allowLateSubmission, setAllowLateSubmission] = useState(false);
-  const [error, setError] = useState('');
-
-  // Review Submissions State
-  const [activeAssignment, setActiveAssignment] = useState<AssignmentItem | null>(null);
-  const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
-  const [selectedSubmission, setSelectedSubmission] = useState<SubmissionItem | null>(null);
-  const [marksInput, setMarksInput] = useState<number>(0);
-  const [feedbackInput, setFeedbackInput] = useState<string>('');
-
-  const fetchAssignments = async () => {
+  const fetchAll = async () => {
     setLoading(true);
     try {
-      const [assignRes, clsRes, subRes] = await Promise.all([
+      const [a, c, s] = await Promise.all([
         api.get('/assignments?pageSize=100'),
-        api.get('/classes'),
-        api.get('/subjects')
+        api.get('/classes'), api.get('/subjects'),
       ]);
-      setAssignments(assignRes.data?.items || []);
-      setClasses(clsRes.data || []);
-      setSubjects(subRes.data || []);
+      setAssignments(a.data?.items || []);
+      setClasses(c.data || []);
+      setSubjects(s.data || []);
     } catch { /* silent */ }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchAssignments(); }, []);
-
-  const handleCreateAssignment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await api.post('/assignments', {
-        title,
-        description,
-        classId,
-        subjectId,
-        maxMarks,
-        deadline: new Date(deadline).toISOString(),
-        status,
-        allowLateSubmission
-      });
-      setShowCreateModal(false);
-      resetForm();
-      fetchAssignments();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create assignment');
-    }
-  };
+  useEffect(() => { fetchAll(); }, []);
 
   const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setClassId('');
-    setSubjectId('');
-    setMaxMarks(100);
-    setDeadline('');
-    setStatus('Draft');
-    setAllowLateSubmission(false);
+    setTitle(''); setDescription(''); setClassId(''); setSubjectId('');
+    setMaxMarks(100); setDeadline(''); setStatus('Draft'); setAllowLate(false);
   };
 
-  const handleTogglePublish = async (id: string) => {
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault(); setFormError('');
     try {
-      await api.patch(`/assignments/${id}/publish`);
-      fetchAssignments();
-    } catch {
-      alert('Failed to update status');
-    }
+      await api.post('/assignments', {
+        title, description, classId, subjectId,
+        maxMarks, deadline: new Date(deadline).toISOString(), status, allowLateSubmission: allowLate,
+      });
+      setShowCreate(false); resetForm(); fetchAll();
+    } catch (err: any) { setFormError(err.response?.data?.message || 'Failed to create'); }
   };
 
-  const handleDeleteAssignment = async (id: string) => {
+  const handleToggle = async (id: string) => {
+    try { await api.patch(`/assignments/${id}/publish`); fetchAll(); }
+    catch { alert('Failed to update status'); }
+  };
+
+  const handleDelete = async (id: string) => {
     if (!confirm('Delete this assignment?')) return;
-    try {
-      await api.delete(`/assignments/${id}`);
-      fetchAssignments();
-    } catch {
-      alert('Failed to delete assignment');
-    }
+    try { await api.delete(`/assignments/${id}`); fetchAll(); }
+    catch { alert('Failed to delete'); }
   };
 
-  const handleOpenReview = async (assignment: AssignmentItem) => {
-    setActiveAssignment(assignment);
+  const handleOpenReview = async (a: AssignmentItem) => {
+    setActiveAssign(a);
     try {
-      const res = await api.get(`/assignments/${assignment.id}/submissions`);
-      setSubmissions(res.data || []);
-      setShowReviewModal(true);
-    } catch {
-      alert('Failed to load submissions');
-    }
+      const res = await api.get(`/assignments/${a.id}/submissions`);
+      setSubmissions(res.data || []); setShowReview(true);
+    } catch { alert('Failed to load submissions'); }
   };
 
   const handleSaveReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSubmission) return;
-
+    if (!selectedSub) return;
     try {
-      await api.put(`/submissions/${selectedSubmission.id}/review`, {
-        marks: marksInput,
-        feedback: feedbackInput,
-        status: 'Reviewed'
+      await api.put(`/submissions/${selectedSub.id}/review`, {
+        marks: marksInput, feedback: feedbackInput, status: 'Reviewed',
       });
-      setSelectedSubmission(null);
-      if (activeAssignment) {
-        const res = await api.get(`/assignments/${activeAssignment.id}/submissions`);
+      setSelectedSub(null);
+      if (activeAssign) {
+        const res = await api.get(`/assignments/${activeAssign.id}/submissions`);
         setSubmissions(res.data || []);
       }
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to review submission');
-    }
+    } catch (err: any) { alert(err.response?.data?.message || 'Failed to save review'); }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h2 className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Assignments & Evaluation
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Create, publish, and evaluate student submission tasks
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.02em' }}>
+            Assignments
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>
+            Create, publish, and evaluate coursework
           </p>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="btn btn-gold">
-          <Plus className="w-4 h-4" />
-          <span>New Assignment</span>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+          <Plus size={14} /> New Assignment
         </button>
       </div>
 
-      <div className="card p-0 overflow-hidden">
+      {/* Table */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
-          <div className="py-16 text-center" style={{ color: 'var(--text-dim)' }}>
-            <FileCheck className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Loading assignments...</p>
-          </div>
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-3)' }}>Loading…</div>
         ) : assignments.length === 0 ? (
-          <div className="py-16 text-center" style={{ color: 'var(--text-dim)' }}>
-            <FileCheck className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">No assignments created yet.</p>
+          <div style={{ padding: '64px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13.5px' }}>
+            No assignments yet. Create one to get started.
           </div>
         ) : (
           <table className="data-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Class / Subject</th>
-                <th>Deadline</th>
-                <th>Max Marks</th>
-                <th>Submissions</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Title</th><th>Class / Subject</th><th>Deadline</th><th>Max</th><th>Subs</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {assignments.map((a) => (
+              {assignments.map(a => (
                 <tr key={a.id}>
                   <td>
-                    <div className="font-semibold text-white">{a.title}</div>
-                    <div className="text-xs text-slate-400 truncate max-w-xs">{a.description}</div>
+                    <div style={{ fontWeight: 500 }}>{a.title}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>{a.description?.slice(0,60)}{a.description?.length > 60 ? '…' : ''}</div>
                   </td>
-                  <td style={{ color: 'var(--text-muted)' }}>{a.className} • {a.subjectName}</td>
-                  <td className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(a.deadline).toLocaleString()}</td>
-                  <td className="font-bold text-amber-400">{a.maxMarks}</td>
-                  <td className="font-bold text-purple-300">{a.totalSubmissions}</td>
+                  <td style={{ color: 'var(--text-3)', fontSize: '13px' }}>{a.className} · {a.subjectName}</td>
+                  <td style={{ color: 'var(--text-3)', fontSize: '12.5px', whiteSpace: 'nowrap' }}>
+                    {new Date(a.deadline).toLocaleDateString()}
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--amber)' }}>{a.maxMarks}</span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--indigo-light)' }}>{a.totalSubmissions}</span>
+                  </td>
                   <td>
                     <button
-                      onClick={() => handleTogglePublish(a.id)}
-                      className={`badge cursor-pointer ${
-                        a.status === 'Published' ? 'badge-published' : 'badge-draft'
-                      }`}
-                      title="Click to toggle Draft / Published"
+                      onClick={() => handleToggle(a.id)}
+                      className={`badge badge-${a.status === 'Published' ? 'published' : 'draft'}`}
+                      style={{ cursor: 'pointer', border: 'none' }}
+                      title="Click to toggle"
                     >
-                      {a.status}
+                      <span className="badge-dot" />{a.status}
                     </button>
                   </td>
                   <td>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenReview(a)}
-                        className="btn btn-ghost text-xs py-1.5 px-3 flex items-center gap-1.5"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Submissions ({a.totalSubmissions})</span>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: '12.5px', gap: '5px' }} onClick={() => handleOpenReview(a)}>
+                        <Eye size={13} /> View
                       </button>
-                      <button
-                        onClick={() => handleDeleteAssignment(a.id)}
-                        className="btn-icon danger"
-                        title="Delete Assignment"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                      <button className="btn-icon danger" onClick={() => handleDelete(a.id)} title="Delete">
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>
@@ -220,219 +165,143 @@ export default function TeacherAssignmentsPage() {
         )}
       </div>
 
-      {/* Create Assignment Modal */}
-      {showCreateModal && (
+      {/* Create Modal */}
+      {showCreate && (
         <div className="modal-overlay">
-          <div
-            className="w-full max-w-lg rounded-2xl p-7 space-y-5 max-h-[90vh] overflow-y-auto"
-            style={{
-              background: 'rgba(14, 10, 26, 0.98)',
-              border: '1px solid rgba(139,92,246,0.35)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
-            }}
-          >
-            <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Create New Assignment
-            </h3>
-            {error && <div className="p-3 bg-rose-500/20 text-rose-300 text-xs rounded-xl border border-rose-500/30">{error}</div>}
-
-            <form onSubmit={handleCreateAssignment} className="space-y-4">
+          <div className="modal-card" style={{ width: '100%', maxWidth: '520px', padding: '26px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>Create Assignment</h2>
+              <button className="btn-icon" onClick={() => { setShowCreate(false); resetForm(); }}><X size={15} /></button>
+            </div>
+            {formError && <div style={{ padding: '9px 13px', background: 'var(--rose-dim)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: '7px', color: '#fb7185', fontSize: '13px', marginBottom: '18px' }}>{formError}</div>}
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Title</label>
-                <input
-                  type="text"
-                  required
-                  className="input-field"
-                  placeholder="Assignment title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Title</label>
+                <input type="text" required className="input-field" placeholder="Assignment title" value={title} onChange={e => setTitle(e.target.value)} />
               </div>
-
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Description / Instructions</label>
-                <textarea
-                  required
-                  className="input-field min-h-[100px]"
-                  placeholder="Detailed task description..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Description / Instructions</label>
+                <textarea required className="input-field" style={{ minHeight: '90px', resize: 'vertical' }} placeholder="Describe the task…" value={description} onChange={e => setDescription(e.target.value)} />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Target Class</label>
-                  <select
-                    required
-                    className="input-field"
-                    value={classId}
-                    onChange={(e) => setClassId(e.target.value)}
-                  >
-                    <option value="">-- Select Class --</option>
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Class</label>
+                  <select required className="input-field" value={classId} onChange={e => setClassId(e.target.value)}>
+                    <option value="">— Select —</option>
+                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Subject</label>
-                  <select
-                    required
-                    className="input-field"
-                    value={subjectId}
-                    onChange={(e) => setSubjectId(e.target.value)}
-                  >
-                    <option value="">-- Select Subject --</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.className})</option>
-                    ))}
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Subject</label>
+                  <select required className="input-field" value={subjectId} onChange={e => setSubjectId(e.target.value)}>
+                    <option value="">— Select —</option>
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Max Marks</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    className="input-field"
-                    value={maxMarks}
-                    onChange={(e) => setMaxMarks(Number(e.target.value))}
-                  />
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Max Marks</label>
+                  <input type="number" min={1} required className="input-field" value={maxMarks} onChange={e => setMaxMarks(Number(e.target.value))} />
                 </div>
-
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Deadline Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    className="input-field"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                  />
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Deadline</label>
+                  <input type="datetime-local" required className="input-field" value={deadline} onChange={e => setDeadline(e.target.value)} />
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-1">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Initial Status</label>
-                  <select
-                    className="input-field"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as AssignmentStatus)}
-                  >
-                    <option value="Draft">Draft (Hidden)</option>
-                    <option value="Published">Published (Visible to Students)</option>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Status</label>
+                  <select className="input-field" value={status} onChange={e => setStatus(e.target.value as AssignmentStatus)}>
+                    <option value="Draft">Draft</option>
+                    <option value="Published">Published</option>
                   </select>
                 </div>
-
-                <div className="flex items-center pt-5">
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={allowLateSubmission}
-                      onChange={(e) => setAllowLateSubmission(e.target.checked)}
-                      className="w-4 h-4 accent-purple-600 rounded"
-                    />
-                    <span>Allow Late Submissions</span>
+                <div style={{ paddingBottom: '1px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-2)' }}>
+                    <input type="checkbox" checked={allowLate} onChange={e => setAllowLate(e.target.checked)} style={{ accentColor: 'var(--indigo)', width: '15px', height: '15px' }} />
+                    Allow late submissions
                   </label>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary text-sm"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary text-sm">
-                  Save Assignment
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowCreate(false); resetForm(); }}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Review Submissions Modal */}
-      {showReviewModal && activeAssignment && (
+      {/* Review Modal */}
+      {showReview && activeAssign && (
         <div className="modal-overlay">
-          <div
-            className="w-full max-w-3xl rounded-2xl p-7 space-y-5 max-h-[90vh] overflow-y-auto"
-            style={{
-              background: 'rgba(14, 10, 26, 0.98)',
-              border: '1px solid rgba(139,92,246,0.35)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
-            }}
-          >
-            <div className="flex items-center justify-between border-b border-purple-900/40 pb-4">
+          <div className="modal-card" style={{ width: '100%', maxWidth: '680px', padding: '26px', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
               <div>
-                <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{activeAssignment.title}</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Submissions List • Max Marks: {activeAssignment.maxMarks}
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>{activeAssign.title}</h2>
+                <p style={{ fontSize: '12.5px', color: 'var(--text-3)', marginTop: '3px' }}>
+                  Submissions · Max marks: <strong style={{ color: 'var(--amber)' }}>{activeAssign.maxMarks}</strong>
                 </p>
               </div>
-              <button
-                onClick={() => setShowReviewModal(false)}
-                className="btn btn-secondary text-xs"
-              >
-                Close
-              </button>
+              <button className="btn-icon" onClick={() => { setShowReview(false); setSelectedSub(null); }}><X size={15} /></button>
             </div>
 
             {submissions.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-sm">No student submissions recorded yet.</div>
+              <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13.5px' }}>
+                No submissions yet.
+              </div>
             ) : (
-              <div className="space-y-4">
-                {submissions.map((sub) => (
-                  <div key={sub.id} className="p-4 rounded-xl bg-purple-950/20 border border-purple-800/30 space-y-3">
-                    <div className="flex items-center justify-between">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {submissions.map(sub => (
+                  <div key={sub.id} style={{
+                    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                    borderRadius: '10px', padding: '16px',
+                    display: 'flex', flexDirection: 'column', gap: '12px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <span className="font-semibold text-white text-sm">{sub.studentName}</span>
-                        <span className="text-xs text-slate-400 ml-2">({sub.studentEmail})</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-1)', fontSize: '13.5px' }}>{sub.studentName}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-3)', marginLeft: '8px' }}>({sub.studentEmail})</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {sub.isLate && <span className="badge badge-draft text-[10px]">Late</span>}
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {sub.isLate && (
+                          <span style={{ fontSize: '11px', padding: '2px 7px', borderRadius: '4px', background: 'var(--rose-dim)', color: '#fb7185', border: '1px solid rgba(244,63,94,0.2)', fontWeight: 600 }}>
+                            Late
+                          </span>
+                        )}
                         <span className={`badge badge-${sub.status.toLowerCase()}`}>
-                          {sub.status}
+                          <span className="badge-dot" />{sub.status}
                         </span>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-slate-950/70 rounded-lg text-slate-200 text-xs whitespace-pre-wrap">
+                    <div style={{ padding: '12px', background: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', color: 'var(--text-2)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                       {sub.answerText}
                     </div>
 
                     {sub.attachmentUrl && (
-                      <div className="text-xs text-amber-400">
-                        Attachment: <a href={sub.attachmentUrl} target="_blank" rel="noreferrer" className="underline">{sub.attachmentUrl}</a>
+                      <a href={sub.attachmentUrl} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: 'var(--indigo-light)', textDecoration: 'none' }}>
+                        📎 View attachment
+                      </a>
+                    )}
+
+                    {sub.marks != null && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 13px', background: 'var(--emerald-dim)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                        <Award size={15} color="#10b981" />
+                        <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 600 }}>{sub.marks} / {activeAssign.maxMarks}</span>
+                        {sub.feedback && <span style={{ fontSize: '12.5px', color: 'var(--text-2)', marginLeft: '8px' }}>"{sub.feedback}"</span>}
                       </div>
                     )}
 
-                    {sub.marks !== null && sub.marks !== undefined && (
-                      <div className="flex items-center gap-4 text-xs text-emerald-400 font-semibold pt-1">
-                        <span>Marks: {sub.marks} / {activeAssignment.maxMarks}</span>
-                        {sub.feedback && <span className="text-slate-300 font-normal">Feedback: "{sub.feedback}"</span>}
-                      </div>
-                    )}
-
-                    <div className="pt-2 flex justify-end">
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <button
-                        onClick={() => {
-                          setSelectedSubmission(sub);
-                          setMarksInput(sub.marks || 0);
-                          setFeedbackInput(sub.feedback || '');
-                        }}
-                        className="btn btn-primary text-xs py-1.5 px-3"
+                        className="btn btn-secondary"
+                        style={{ fontSize: '12.5px', padding: '6px 14px', gap: '6px' }}
+                        onClick={() => { setSelectedSub(sub); setMarksInput(sub.marks || 0); setFeedbackInput(sub.feedback || ''); }}
                       >
-                        <CheckSquare className="w-3.5 h-3.5" />
-                        <span>{sub.marks !== null ? 'Re-grade / Edit' : 'Grade & Feedback'}</span>
+                        <CheckSquare size={13} />
+                        {sub.marks != null ? 'Edit Grade' : 'Grade'}
                       </button>
                     </div>
                   </div>
@@ -440,49 +309,26 @@ export default function TeacherAssignmentsPage() {
               </div>
             )}
 
-            {/* Sub-modal to grade a specific submission */}
-            {selectedSubmission && (
-              <div className="p-5 rounded-xl bg-purple-900/30 border border-purple-500/40 space-y-4 mt-4">
-                <h4 className="font-bold text-sm text-amber-300">
-                  Grade Submission for {selectedSubmission.studentName}
-                </h4>
-                <form onSubmit={handleSaveReview} className="space-y-4">
+            {/* Grade panel */}
+            {selectedSub && (
+              <div style={{ marginTop: '20px', padding: '18px', background: 'var(--bg-card)', border: '1px solid var(--border-focus)', borderRadius: '10px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '14px' }}>
+                  Grading: {selectedSub.studentName}
+                </h3>
+                <form onSubmit={handleSaveReview} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
-                    <label className="block text-xs uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>
-                      Marks (Max: {activeAssignment.maxMarks})
+                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>
+                      Marks (max {activeAssign.maxMarks})
                     </label>
-                    <input
-                      type="number"
-                      max={activeAssignment.maxMarks}
-                      min="0"
-                      required
-                      className="input-field"
-                      value={marksInput}
-                      onChange={(e) => setMarksInput(Number(e.target.value))}
-                    />
+                    <input type="number" min={0} max={activeAssign.maxMarks} required className="input-field" value={marksInput} onChange={e => setMarksInput(Number(e.target.value))} />
                   </div>
-
                   <div>
-                    <label className="block text-xs uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>Teacher Feedback</label>
-                    <textarea
-                      className="input-field min-h-[70px]"
-                      placeholder="Write evaluation comments..."
-                      value={feedbackInput}
-                      onChange={(e) => setFeedbackInput(e.target.value)}
-                    />
+                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Feedback</label>
+                    <textarea className="input-field" style={{ minHeight: '70px', resize: 'vertical' }} placeholder="Write evaluation feedback…" value={feedbackInput} onChange={e => setFeedbackInput(e.target.value)} />
                   </div>
-
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSubmission(null)}
-                      className="btn btn-secondary text-xs"
-                    >
-                      Cancel
-                    </button>
-                    <button type="submit" className="btn btn-gold text-xs font-bold">
-                      Submit Grade
-                    </button>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => setSelectedSub(null)}>Cancel</button>
+                    <button type="submit" className="btn btn-primary">Save Grade</button>
                   </div>
                 </form>
               </div>

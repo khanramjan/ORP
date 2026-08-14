@@ -62,73 +62,51 @@ Onno Rokom Projukti/
 
 ---
 
-## 🚀 Easy Local Setup Instructions
+## 🚀 Local Setup & Recruiter Evaluation Instructions
 
-### Prerequisites
-- [.NET 9 / 10 SDK](https://dotnet.microsoft.com/download)
-- [Node.js v18+](https://nodejs.org/)
-- [PostgreSQL](https://www.postgresql.org/) (optional - auto-falls back to EF Core In-Memory database if PostgreSQL service is unavailable)
+### 🐳 Option A: One-Command Docker Setup (Recommended for Evaluators)
 
----
-
-### 1. Database Setup
-
-Create a PostgreSQL database named `assignment_ms`:
-```sql
-CREATE DATABASE assignment_ms;
-```
-
-Optionally configure your database connection string in `backend/AssignmentMS.API/appsettings.json`:
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Host=localhost;Database=assignment_ms;Username=postgres;Password=postgres"
-}
-```
-
-> **Note:** The backend API will automatically run migrations and seed sample demo data (`admin@school.com`, `teacher@school.com`, `student@school.com`, sample classes & subjects) on application launch.
-
----
-
-### 2. Running the Backend API
+When cloning the repository, you can launch the **entire stack** (PostgreSQL Database, ASP.NET Core Web API, and Next.js Frontend) using a single command:
 
 ```bash
-# Navigate to backend directory
-cd backend
-
-# Build solution
-dotnet build
-
-# Run API (Listens on http://localhost:5000)
-dotnet run --project AssignmentMS.API/AssignmentMS.API.csproj --urls=http://localhost:5000
+docker compose up --build
 ```
 
-- **Swagger API Docs**: Open [http://localhost:5000/swagger](http://localhost:5000/swagger) in your browser.
+- **Frontend App**: Open [http://localhost:3000](http://localhost:3000)
+- **Backend Swagger API Docs**: Open [http://localhost:5000/swagger](http://localhost:5000/swagger)
+- **PostgreSQL Database**: Accessible on `localhost:5432` (`assignment_ms` database)
 
 ---
 
-### 3. Running the Frontend
+### 📦 Option B: Docker PostgreSQL Database + Local Code Execution
 
+If you prefer running the code locally:
+
+#### 1. Start PostgreSQL Container
 ```bash
-# Navigate to frontend directory
+docker compose up -d postgres
+```
+
+#### 2. Run Backend API
+```bash
+cd backend/AssignmentMS.API
+dotnet run
+```
+> The API auto-detects PostgreSQL on port 5432, executes migrations, and seeds demo accounts (`admin@school.com`, `teacher@school.com`, `student@school.com`).
+
+#### 3. Run Frontend
+```bash
 cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server (Listens on http://localhost:3000)
 npm run dev
 ```
 
-- Open [http://localhost:3000](http://localhost:3000) in your browser and log in using the demo credentials.
-
 ---
 
-### 4. Running Unit Tests
+### 🧪 Option C: Running Unit Tests
 
 ```bash
-# Run all backend xUnit tests
 cd backend
-dotnet test AssignmentMS.Tests/AssignmentMS.Tests.csproj
+dotnet test
 ```
 
 ---

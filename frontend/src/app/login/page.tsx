@@ -3,22 +3,22 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
-import { BookOpen, ArrowRight, AlertCircle, Shield, School, GraduationCap } from 'lucide-react';
+import { BookOpen, Eye, EyeOff, AlertCircle, Shield, School, GraduationCap, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
 
   const { login } = useAuth();
-  const router = useRouter();
+  const router    = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       await login(email, password);
       router.push('/dashboard');
@@ -29,104 +29,157 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickLogin = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-  };
+  const demoAccounts = [
+    { role: 'Admin',   email: 'admin@school.com',   pass: 'Admin@123',   icon: <Shield size={14} />,        color: '#fb7185' },
+    { role: 'Teacher', email: 'teacher@school.com', pass: 'Teacher@123', icon: <School size={14} />,        color: '#818cf8' },
+    { role: 'Student', email: 'student@school.com', pass: 'Student@123', icon: <GraduationCap size={14} />, color: '#22d3ee' },
+  ];
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
-        {/* Header Logo & Title */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700/50 text-zinc-200 mb-1">
-            <BookOpen className="w-5 h-5" />
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg-base)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+    }}>
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '48px', height: '48px',
+            background: 'var(--indigo)',
+            borderRadius: '12px',
+            marginBottom: '14px',
+          }}>
+            <BookOpen size={22} color="#fff" />
           </div>
-          <h1 className="text-xl font-semibold text-zinc-100 tracking-tight">EduAssign</h1>
-          <p className="text-xs text-zinc-400">Sign in to your academic portal</p>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.03em' }}>
+            Sign in to EduAssign
+          </h1>
+          <p style={{ fontSize: '13.5px', color: 'var(--text-3)', marginTop: '6px' }}>
+            Academic Assignment & Submission Portal
+          </p>
         </div>
 
-        {/* Login Card */}
-        <div className="card p-6 space-y-5">
+        {/* Card */}
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          borderRadius: '14px',
+          padding: '28px',
+        }}>
           {error && (
-            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '10px 14px',
+              background: 'var(--rose-dim)',
+              border: '1px solid rgba(244,63,94,0.25)',
+              borderRadius: '8px',
+              color: '#fb7185',
+              fontSize: '13px',
+              marginBottom: '20px',
+            }}>
+              <AlertCircle size={14} style={{ flexShrink: 0 }} />
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Email Address
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '7px' }}>
+                Email address
               </label>
               <input
                 type="email"
                 required
                 className="input-field"
-                placeholder="name@school.com"
+                placeholder="you@school.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+            <div style={{ marginBottom: '22px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '7px' }}>
                 Password
               </label>
-              <input
-                type="password"
-                required
-                className="input-field"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  required
+                  className="input-field"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  style={{ paddingRight: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  style={{
+                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-3)', padding: '4px', display: 'flex',
+                  }}
+                >
+                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full py-2.5 mt-1 text-xs font-semibold"
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '10px', fontSize: '14px', fontWeight: 600, justifyContent: 'center' }}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
-              <ArrowRight className="w-3.5 h-3.5" />
+              {loading ? 'Signing in…' : 'Sign in'}
+              {!loading && <ArrowRight size={15} />}
             </button>
           </form>
 
-          {/* Quick Demo Fill Buttons */}
-          <div className="pt-4 border-t border-zinc-800/80 space-y-2">
-            <div className="text-[11px] text-zinc-500 font-medium text-center uppercase tracking-wider">
-              Quick Fill Accounts
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin@school.com', 'Admin@123')}
-                className="btn btn-secondary text-xs py-2 flex-col gap-1 border-zinc-800 hover:border-zinc-700"
-              >
-                <Shield className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Admin</span>
-              </button>
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '22px 0' }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            <span style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              Quick demo access
+            </span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          </div>
 
+          {/* Demo Buttons */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            {demoAccounts.map(({ role, email: dEmail, pass, icon, color }) => (
               <button
+                key={role}
                 type="button"
-                onClick={() => handleQuickLogin('teacher@school.com', 'Teacher@123')}
-                className="btn btn-secondary text-xs py-2 flex-col gap-1 border-zinc-800 hover:border-zinc-700"
+                onClick={() => { setEmail(dEmail); setPassword(pass); }}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                  padding: '12px 8px',
+                  background: `${color}0d`,
+                  border: `1px solid ${color}25`,
+                  borderRadius: '9px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  color: color,
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLButtonElement).style.background = `${color}18`;
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = `${color}50`;
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.background = `${color}0d`;
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = `${color}25`;
+                }}
               >
-                <School className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Teacher</span>
+                {icon}
+                <span style={{ fontSize: '11.5px', fontWeight: 600 }}>{role}</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('student@school.com', 'Student@123')}
-                className="btn btn-secondary text-xs py-2 flex-col gap-1 border-zinc-800 hover:border-zinc-700"
-              >
-                <GraduationCap className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Student</span>
-              </button>
-            </div>
+            ))}
           </div>
         </div>
       </div>

@@ -8,21 +8,21 @@ export const metadata = {
   description: 'Role-based academic management system for OnnoRokom Projukti',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body>
         <AuthProvider>
-          <div className="min-h-screen flex flex-col">
+          <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar />
-            <div className="flex flex-1 min-h-0">
+            <div style={{ display: 'flex', flex: 1 }}>
               <Sidebar />
-              <main className="flex-1 overflow-y-auto">
-                <div className="max-w-7xl mx-auto p-8 w-full">
+              <main style={{ flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg-base)' }}>
+                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 28px' }}>
                   {children}
                 </div>
               </main>

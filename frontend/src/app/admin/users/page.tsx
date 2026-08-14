@@ -3,18 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { User, UserRole } from '@/types';
-import { UserPlus, Trash2, Users } from 'lucide-react';
+import { UserPlus, Trash2, Users, X } from 'lucide-react';
 
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [roleFilter, setRoleFilter] = useState<string>('');
-  const [email, setEmail] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('Student');
-  const [error, setError] = useState('');
+  const [users,       setUsers]       = useState<User[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [showModal,   setShowModal]   = useState(false);
+  const [roleFilter,  setRoleFilter]  = useState('');
+  const [email,       setEmail]       = useState('');
+  const [fullName,    setFullName]    = useState('');
+  const [password,    setPassword]    = useState('');
+  const [role,        setRole]        = useState<UserRole>('Student');
+  const [error,       setError]       = useState('');
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -47,94 +47,104 @@ export default function UserManagementPage() {
     catch { alert('Failed to delete user'); }
   };
 
-  const filters = ['', 'Admin', 'Teacher', 'Student'];
-  const filterLabels: Record<string, string> = { '': 'All', Admin: 'Admin', Teacher: 'Teacher', Student: 'Student' };
+  const filters = [
+    { value: '',        label: 'All' },
+    { value: 'Admin',   label: 'Admin' },
+    { value: 'Teacher', label: 'Teacher' },
+    { value: 'Student', label: 'Student' },
+  ];
+
+  const roleColor: Record<string, string> = { Admin: '#fb7185', Teacher: '#818cf8', Student: '#22d3ee' };
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h2 className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.02em' }}>
             User Management
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Manage accounts, roles, and permissions
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>
+            Manage accounts, roles, and access permissions
           </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <UserPlus className="w-4 h-4" />
-          Add User
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <UserPlus size={14} /> Add User
         </button>
       </div>
 
-      {/* Card */}
-      <div className="card p-0 overflow-hidden">
-        {/* Filter tabs */}
-        <div
-          className="flex items-center gap-1 px-5 py-4"
-          style={{ borderBottom: '1px solid rgba(139,92,246,0.14)' }}
-        >
-          <span className="text-xs font-medium mr-3" style={{ color: 'var(--text-muted)' }}>Filter:</span>
+      {/* Table card */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+        {/* Filters */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '14px 18px', borderBottom: '1px solid var(--border)',
+          background: 'rgba(0,0,0,0.1)',
+        }}>
           {filters.map(f => (
             <button
-              key={f}
-              onClick={() => setRoleFilter(f)}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
-              style={roleFilter === f ? {
-                background: 'linear-gradient(135deg, #6d28d9, #f59e0b)',
-                color: '#fff',
-              } : {
-                background: 'rgba(139,92,246,0.08)',
-                color: 'var(--text-muted)',
-                border: '1px solid rgba(139,92,246,0.18)',
+              key={f.value}
+              onClick={() => setRoleFilter(f.value)}
+              style={{
+                padding: '5px 13px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 500,
+                cursor: 'pointer', border: '1px solid',
+                borderColor: roleFilter === f.value ? 'var(--indigo)' : 'var(--border)',
+                background:  roleFilter === f.value ? 'var(--indigo-dim)' : 'transparent',
+                color:       roleFilter === f.value ? 'var(--indigo-light)' : 'var(--text-3)',
+                transition: 'all 0.15s',
               }}
             >
-              {filterLabels[f]}
+              {f.label}
             </button>
           ))}
-          <span className="ml-auto text-xs" style={{ color: 'var(--text-dim)' }}>
-            {users.length} user{users.length !== 1 ? 's' : ''}
+          <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-3)' }}>
+            {users.length} {users.length === 1 ? 'user' : 'users'}
           </span>
         </div>
 
         {loading ? (
-          <div className="py-16 text-center" style={{ color: 'var(--text-dim)' }}>
-            <Users className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Loading users…</p>
+          <div style={{ padding: '64px', textAlign: 'center', color: 'var(--text-3)' }}>
+            <Users size={28} style={{ opacity: 0.3, marginBottom: '8px', display: 'block', margin: '0 auto 8px' }} />
+            <p style={{ fontSize: '13.5px' }}>Loading…</p>
           </div>
         ) : users.length === 0 ? (
-          <div className="py-16 text-center" style={{ color: 'var(--text-dim)' }}>
-            <Users className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">No users found.</p>
+          <div style={{ padding: '64px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13.5px' }}>
+            No users found.
           </div>
         ) : (
           <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Joined</th>
-                <th></th>
-              </tr>
-            </thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th></th></tr></thead>
             <tbody>
               {users.map(u => (
                 <tr key={u.id}>
-                  <td className="font-semibold text-white">{u.fullName}</td>
-                  <td style={{ color: 'var(--text-muted)' }}>{u.email}</td>
-                  <td><span className={`badge badge-${u.role.toLowerCase()}`}>{u.role}</span></td>
-                  <td className="text-xs" style={{ color: 'var(--text-dim)' }}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '50%',
+                        background: `${roleColor[u.role] ?? '#94a3b8'}18`,
+                        border: `1px solid ${roleColor[u.role] ?? '#94a3b8'}30`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '12px', fontWeight: 700,
+                        color: roleColor[u.role] ?? '#94a3b8',
+                        flexShrink: 0,
+                      }}>
+                        {u.fullName.charAt(0).toUpperCase()}
+                      </div>
+                      <span style={{ fontWeight: 500 }}>{u.fullName}</span>
+                    </div>
+                  </td>
+                  <td style={{ color: 'var(--text-3)', fontSize: '13px' }}>{u.email}</td>
+                  <td>
+                    <span className={`badge badge-${u.role.toLowerCase()}`}>
+                      <span className="badge-dot" />{u.role}
+                    </span>
+                  </td>
+                  <td style={{ color: 'var(--text-3)', fontSize: '12.5px' }}>
                     {new Date(u.createdAt).toLocaleDateString()}
                   </td>
                   <td>
-                    <button
-                      onClick={() => handleDelete(u.id)}
-                      className="btn-icon danger"
-                      title="Delete user"
-                    >
-                      <Trash2 className="w-4 h-4" />
+                    <button className="btn-icon danger" title="Delete" onClick={() => handleDelete(u.id)}>
+                      <Trash2 size={14} />
                     </button>
                   </td>
                 </tr>
@@ -147,49 +157,35 @@ export default function UserManagementPage() {
       {/* Create Modal */}
       {showModal && (
         <div className="modal-overlay">
-          <div
-            className="w-full max-w-md rounded-2xl p-7 space-y-5"
-            style={{
-              background: 'rgba(14, 10, 26, 0.98)',
-              border: '1px solid rgba(139,92,246,0.35)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
-            }}
-          >
-            <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Create New User
-            </h3>
+          <div className="modal-card" style={{ width: '100%', maxWidth: '420px', padding: '26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>Create User</h2>
+              <button className="btn-icon" onClick={() => setShowModal(false)}><X size={15} /></button>
+            </div>
 
             {error && (
-              <div className="p-3 rounded-xl text-sm" style={{ background: 'rgba(244,63,94,0.12)', color: '#fb7185', border: '1px solid rgba(244,63,94,0.3)' }}>
+              <div style={{ padding: '9px 13px', background: 'var(--rose-dim)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: '7px', color: '#fb7185', fontSize: '13px', marginBottom: '18px' }}>
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {[
-                { label: 'Full Name', type: 'text',     val: fullName, set: setFullName, ph: 'Jane Doe' },
+                { label: 'Full Name', type: 'text',     val: fullName, set: setFullName, ph: 'Jane Smith' },
                 { label: 'Email',     type: 'email',    val: email,    set: setEmail,    ph: 'jane@school.com' },
                 { label: 'Password',  type: 'password', val: password, set: setPassword, ph: '••••••••' },
               ].map(f => (
                 <div key={f.label}>
-                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>
                     {f.label}
                   </label>
-                  <input
-                    type={f.type}
-                    required
-                    className="input-field"
-                    placeholder={f.ph}
-                    value={f.val}
-                    onChange={e => f.set(e.target.value)}
-                  />
+                  <input type={f.type} required className="input-field" placeholder={f.ph}
+                    value={f.val} onChange={e => f.set(e.target.value)} />
                 </div>
               ))}
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                  Role
-                </label>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Role</label>
                 <select className="input-field" value={role} onChange={e => setRole(e.target.value as UserRole)}>
                   <option value="Student">Student</option>
                   <option value="Teacher">Teacher</option>
@@ -197,8 +193,8 @@ export default function UserManagementPage() {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Create User</button>
               </div>
             </form>

@@ -3,149 +3,119 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { SubjectItem, ClassItem, User } from '@/types';
-import { BookPlus, Trash2, UserCheck, BookMarked } from 'lucide-react';
+import { Plus, Trash2, UserCheck, X } from 'lucide-react';
 
 export default function SubjectManagementPage() {
-  const [subjects, setSubjects] = useState<SubjectItem[]>([]);
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [teachers, setTeachers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [classId, setClassId] = useState('');
+  const [subjects,          setSubjects]          = useState<SubjectItem[]>([]);
+  const [classes,           setClasses]           = useState<ClassItem[]>([]);
+  const [teachers,          setTeachers]          = useState<User[]>([]);
+  const [loading,           setLoading]           = useState(true);
+  const [showCreate,        setShowCreate]        = useState(false);
+  const [showAssign,        setShowAssign]        = useState(false);
+  const [name,              setName]              = useState('');
+  const [code,              setCode]              = useState('');
+  const [classId,           setClassId]           = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
-  const [error, setError] = useState('');
+  const [error,             setError]             = useState('');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [subRes, clsRes, userRes] = await Promise.all([
-        api.get('/subjects'),
-        api.get('/classes'),
-        api.get('/users?role=Teacher&pageSize=100')
+      const [s, c, u] = await Promise.all([
+        api.get('/subjects'), api.get('/classes'),
+        api.get('/users?role=Teacher&pageSize=100'),
       ]);
-      setSubjects(subRes.data || []);
-      setClasses(clsRes.data || []);
-      setTeachers(userRes.data?.items || []);
+      setSubjects(s.data || []); setClasses(c.data || []);
+      setTeachers(u.data?.items || []);
     } catch { /* silent */ }
     finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleCreateSubject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault(); setError('');
     try {
       await api.post('/subjects', { name, code, classId });
-      setShowCreateModal(false);
-      setName('');
-      setCode('');
-      setClassId('');
-      fetchData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create subject');
-    }
+      setShowCreate(false); setName(''); setCode(''); setClassId(''); fetchData();
+    } catch (err: any) { setError(err.response?.data?.message || 'Failed to create subject'); }
   };
 
-  const handleAssignTeacher = async (e: React.FormEvent) => {
+  const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSubjectId || !selectedTeacherId) return;
     try {
       await api.post(`/subjects/${selectedSubjectId}/teachers`, { teacherId: selectedTeacherId });
-      setShowAssignModal(false);
-      fetchData();
-    } catch {
-      alert('Failed to assign teacher');
-    }
+      setShowAssign(false); fetchData();
+    } catch { alert('Failed to assign teacher'); }
   };
 
-  const handleDeleteSubject = async (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Delete this subject?')) return;
-    try {
-      await api.delete(`/subjects/${id}`);
-      fetchData();
-    } catch {
-      alert('Failed to delete subject');
-    }
+    try { await api.delete(`/subjects/${id}`); fetchData(); }
+    catch { alert('Failed to delete subject'); }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h2 className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.02em' }}>
             Subject Management
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Map subjects to grade classes and assign faculty members
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>
+            Map subjects to classes and assign teachers
           </p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowAssignModal(true)} className="btn btn-secondary">
-            <UserCheck className="w-4 h-4" />
-            <span>Assign Teacher</span>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-secondary" onClick={() => setShowAssign(true)}>
+            <UserCheck size={14} /> Assign Teacher
           </button>
-          <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
-            <BookPlus className="w-4 h-4" />
-            <span>Create Subject</span>
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            <Plus size={14} /> Create Subject
           </button>
         </div>
       </div>
 
-      <div className="card p-0 overflow-hidden">
+      {/* Table */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
-          <div className="py-16 text-center" style={{ color: 'var(--text-dim)' }}>
-            <BookMarked className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Loading subjects...</p>
-          </div>
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-3)' }}>Loading…</div>
         ) : subjects.length === 0 ? (
-          <div className="py-16 text-center" style={{ color: 'var(--text-dim)' }}>
-            <BookMarked className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">No subjects created yet.</p>
+          <div style={{ padding: '64px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13.5px' }}>
+            No subjects yet.
           </div>
         ) : (
           <table className="data-table">
-            <thead>
-              <tr>
-                <th>Subject Name</th>
-                <th>Code</th>
-                <th>Enrolled Class</th>
-                <th>Assigned Teachers</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Subject</th><th>Code</th><th>Class</th><th>Teachers</th><th></th></tr></thead>
             <tbody>
-              {subjects.map((s) => (
+              {subjects.map(s => (
                 <tr key={s.id}>
-                  <td className="font-semibold text-white">{s.name}</td>
-                  <td className="font-mono text-xs text-amber-400">{s.code}</td>
-                  <td style={{ color: 'var(--text-muted)' }}>{s.className}</td>
+                  <td style={{ fontWeight: 500 }}>{s.name}</td>
                   <td>
-                    {s.assignedTeachers.length === 0 ? (
-                      <span className="text-xs italic" style={{ color: 'var(--text-dim)' }}>None</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {s.assignedTeachers.map((t) => (
-                          <span key={t.id} className="badge badge-teacher text-[10px]">
-                            {t.fullName}
+                    <code style={{
+                      fontSize: '12px', fontWeight: 600,
+                      padding: '2px 8px', borderRadius: '5px',
+                      background: 'var(--amber-dim)', color: 'var(--amber)',
+                      border: '1px solid rgba(245,158,11,0.2)',
+                    }}>{s.code}</code>
+                  </td>
+                  <td style={{ color: 'var(--text-3)' }}>{s.className}</td>
+                  <td>
+                    {s.assignedTeachers.length === 0
+                      ? <span style={{ fontSize: '12.5px', color: 'var(--text-3)', fontStyle: 'italic' }}>Unassigned</span>
+                      : s.assignedTeachers.map(t => (
+                          <span key={t.id} className="badge badge-teacher" style={{ marginRight: '4px', fontSize: '11.5px' }}>
+                            <span className="badge-dot" />{t.fullName}
                           </span>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                    }
                   </td>
                   <td>
-                    <button
-                      onClick={() => handleDeleteSubject(s.id)}
-                      className="btn-icon danger"
-                      title="Delete Subject"
-                    >
-                      <Trash2 className="w-4 h-4" />
+                    <button className="btn-icon danger" onClick={() => handleDelete(s.id)} title="Delete">
+                      <Trash2 size={13} />
                     </button>
                   </td>
                 </tr>
@@ -155,136 +125,66 @@ export default function SubjectManagementPage() {
         )}
       </div>
 
-      {/* Create Subject Modal */}
-      {showCreateModal && (
+      {/* Create Modal */}
+      {showCreate && (
         <div className="modal-overlay">
-          <div
-            className="w-full max-w-md rounded-2xl p-7 space-y-5"
-            style={{
-              background: 'rgba(14, 10, 26, 0.98)',
-              border: '1px solid rgba(139,92,246,0.35)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
-            }}
-          >
-            <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Create New Subject
-            </h3>
-            {error && <div className="p-3 bg-rose-500/20 text-rose-300 text-xs rounded-xl border border-rose-500/30">{error}</div>}
-            
-            <form onSubmit={handleCreateSubject} className="space-y-4">
+          <div className="modal-card" style={{ width: '100%', maxWidth: '420px', padding: '26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>Create Subject</h2>
+              <button className="btn-icon" onClick={() => setShowCreate(false)}><X size={15} /></button>
+            </div>
+            {error && <div style={{ padding: '9px 13px', background: 'var(--rose-dim)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: '7px', color: '#fb7185', fontSize: '13px', marginBottom: '18px' }}>{error}</div>}
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Subject Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Computer Science"
-                  className="input-field"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Subject Name</label>
+                <input type="text" required className="input-field" placeholder="e.g. Computer Science" value={name} onChange={e => setName(e.target.value)} />
               </div>
-
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Subject Code</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. CS101"
-                  className="input-field"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                />
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Subject Code</label>
+                <input type="text" required className="input-field" placeholder="e.g. CS101" value={code} onChange={e => setCode(e.target.value)} />
               </div>
-
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Target Class</label>
-                <select
-                  required
-                  className="input-field"
-                  value={classId}
-                  onChange={(e) => setClassId(e.target.value)}
-                >
-                  <option value="">-- Choose Class --</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Target Class</label>
+                <select required className="input-field" value={classId} onChange={e => setClassId(e.target.value)}>
+                  <option value="">— Select class —</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Subject
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Assign Teacher Modal */}
-      {showAssignModal && (
+      {/* Assign Modal */}
+      {showAssign && (
         <div className="modal-overlay">
-          <div
-            className="w-full max-w-md rounded-2xl p-7 space-y-5"
-            style={{
-              background: 'rgba(14, 10, 26, 0.98)',
-              border: '1px solid rgba(139,92,246,0.35)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
-            }}
-          >
-            <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Assign Teacher to Subject
-            </h3>
-            
-            <form onSubmit={handleAssignTeacher} className="space-y-4">
+          <div className="modal-card" style={{ width: '100%', maxWidth: '420px', padding: '26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>Assign Teacher</h2>
+              <button className="btn-icon" onClick={() => setShowAssign(false)}><X size={15} /></button>
+            </div>
+            <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Select Subject</label>
-                <select
-                  required
-                  className="input-field"
-                  value={selectedSubjectId}
-                  onChange={(e) => setSelectedSubjectId(e.target.value)}
-                >
-                  <option value="">-- Choose Subject --</option>
-                  {subjects.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.className})</option>
-                  ))}
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Select Subject</label>
+                <select required className="input-field" value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)}>
+                  <option value="">— Choose subject —</option>
+                  {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className})</option>)}
                 </select>
               </div>
-
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Select Teacher</label>
-                <select
-                  required
-                  className="input-field"
-                  value={selectedTeacherId}
-                  onChange={(e) => setSelectedTeacherId(e.target.value)}
-                >
-                  <option value="">-- Choose Teacher --</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.id}>{t.fullName} ({t.email})</option>
-                  ))}
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Select Teacher</label>
+                <select required className="input-field" value={selectedTeacherId} onChange={e => setSelectedTeacherId(e.target.value)}>
+                  <option value="">— Choose teacher —</option>
+                  {teachers.map(t => <option key={t.id} value={t.id}>{t.fullName} ({t.email})</option>)}
                 </select>
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAssignModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Assign Teacher
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAssign(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Assign</button>
               </div>
             </form>
           </div>

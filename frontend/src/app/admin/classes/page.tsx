@@ -3,259 +3,192 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { ClassItem, User } from '@/types';
-import { FolderPlus, Trash2, UserPlus, Users, FolderKanban } from 'lucide-react';
+import { Plus, Trash2, UserPlus, Users, BookMarked, X } from 'lucide-react';
 
 export default function ClassManagementPage() {
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [students, setStudents] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-
-  const [selectedClassId, setSelectedClassId] = useState<string>('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [error, setError] = useState('');
+  const [classes,          setClasses]          = useState<ClassItem[]>([]);
+  const [students,         setStudents]         = useState<User[]>([]);
+  const [loading,          setLoading]          = useState(true);
+  const [showCreate,       setShowCreate]       = useState(false);
+  const [showEnroll,       setShowEnroll]       = useState(false);
+  const [selectedClassId,  setSelectedClassId]  = useState('');
+  const [name,             setName]             = useState('');
+  const [description,      setDescription]      = useState('');
+  const [selectedStudentId,setSelectedStudentId]= useState('');
+  const [error,            setError]            = useState('');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [clsRes, userRes] = await Promise.all([
+      const [c, u] = await Promise.all([
         api.get('/classes'),
-        api.get('/users?role=Student&pageSize=100')
+        api.get('/users?role=Student&pageSize=100'),
       ]);
-      setClasses(clsRes.data || []);
-      setStudents(userRes.data?.items || []);
+      setClasses(c.data || []);
+      setStudents(u.data?.items || []);
     } catch { /* silent */ }
     finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleCreateClass = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault(); setError('');
     try {
       await api.post('/classes', { name, description });
-      setShowCreateModal(false);
-      setName('');
-      setDescription('');
-      fetchData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create class');
-    }
+      setShowCreate(false); setName(''); setDescription(''); fetchData();
+    } catch (err: any) { setError(err.response?.data?.message || 'Failed to create class'); }
   };
 
-  const handleAssignStudent = async (e: React.FormEvent) => {
+  const handleEnroll = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClassId || !selectedStudentId) return;
     try {
       await api.post(`/classes/${selectedClassId}/students`, { studentId: selectedStudentId });
-      setShowAssignModal(false);
-      fetchData();
-    } catch {
-      alert('Failed to assign student');
-    }
+      setShowEnroll(false); fetchData();
+    } catch { alert('Failed to enroll student'); }
   };
 
-  const handleDeleteClass = async (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Delete this class?')) return;
-    try {
-      await api.delete(`/classes/${id}`);
-      fetchData();
-    } catch {
-      alert('Failed to delete class');
-    }
+    try { await api.delete(`/classes/${id}`); fetchData(); }
+    catch { alert('Failed to delete class'); }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h2 className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.02em' }}>
             Class Management
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Configure academic classes and student enrollments
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>
+            Create class sections and manage student enrollments
           </p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowAssignModal(true)} className="btn btn-secondary">
-            <UserPlus className="w-4 h-4" />
-            <span>Enroll Student</span>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-secondary" onClick={() => setShowEnroll(true)}>
+            <UserPlus size={14} /> Enroll Student
           </button>
-          <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
-            <FolderPlus className="w-4 h-4" />
-            <span>Create Class</span>
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            <Plus size={14} /> Create Class
           </button>
         </div>
       </div>
 
-      <div className="card p-6">
-        {loading ? (
-          <div className="py-16 text-center" style={{ color: 'var(--text-dim)' }}>
-            <FolderKanban className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Loading classes...</p>
-          </div>
-        ) : classes.length === 0 ? (
-          <div className="py-16 text-center" style={{ color: 'var(--text-dim)' }}>
-            <FolderKanban className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">No classes created yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {classes.map((c) => (
-              <div
-                key={c.id}
-                className="p-5 rounded-2xl flex flex-col justify-between space-y-4"
-                style={{
-                  background: 'rgba(139,92,246,0.06)',
-                  border: '1px solid rgba(139,92,246,0.2)',
-                }}
-              >
+      {/* Grid */}
+      {loading ? (
+        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-3)' }}>Loading classes…</div>
+      ) : classes.length === 0 ? (
+        <div style={{
+          padding: '64px', textAlign: 'center', color: 'var(--text-3)',
+          background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px',
+        }}>
+          No classes yet. Create your first class.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+          {classes.map(c => (
+            <div key={c.id} style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: '12px', padding: '20px',
+              display: 'flex', flexDirection: 'column', gap: '14px',
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-hover)'}
+            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div>
-                  <div className="flex items-start justify-between">
-                    <h3 className="font-bold text-lg text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{c.name}</h3>
-                    <button
-                      onClick={() => handleDeleteClass(c.id)}
-                      className="btn-icon danger"
-                      title="Delete Class"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-xs mt-1 text-slate-400">{c.description || 'No description provided'}</p>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-1)' }}>{c.name}</h3>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-3)', marginTop: '4px', lineHeight: 1.5 }}>
+                    {c.description || 'No description provided.'}
+                  </p>
                 </div>
-
-                <div className="flex items-center gap-4 text-xs pt-3" style={{ borderTop: '1px solid rgba(139,92,246,0.12)' }}>
-                  <div className="flex items-center gap-1.5 font-semibold text-amber-400">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>{c.studentCount} Students</span>
-                  </div>
-                  <div className="text-purple-300 font-semibold">
-                    <span>{c.subjectCount} Subjects</span>
-                  </div>
-                </div>
+                <button className="btn-icon danger" onClick={() => handleDelete(c.id)} title="Delete">
+                  <Trash2 size={13} />
+                </button>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                <span style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  fontSize: '12px', fontWeight: 500,
+                  padding: '4px 10px', borderRadius: '6px',
+                  background: 'var(--indigo-dim)', color: 'var(--indigo-light)',
+                  border: '1px solid rgba(99,102,241,0.2)',
+                }}>
+                  <Users size={12} /> {c.studentCount} students
+                </span>
+                <span style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  fontSize: '12px', fontWeight: 500,
+                  padding: '4px 10px', borderRadius: '6px',
+                  background: 'var(--cyan-dim)', color: 'var(--cyan)',
+                  border: '1px solid rgba(34,211,238,0.2)',
+                }}>
+                  <BookMarked size={12} /> {c.subjectCount} subjects
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Create Class Modal */}
-      {showCreateModal && (
+      {showCreate && (
         <div className="modal-overlay">
-          <div
-            className="w-full max-w-md rounded-2xl p-7 space-y-5"
-            style={{
-              background: 'rgba(14, 10, 26, 0.98)',
-              border: '1px solid rgba(139,92,246,0.35)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
-            }}
-          >
-            <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Create New Class
-            </h3>
-            {error && <div className="p-3 bg-rose-500/20 text-rose-300 text-xs rounded-xl border border-rose-500/30">{error}</div>}
-            
-            <form onSubmit={handleCreateClass} className="space-y-4">
+          <div className="modal-card" style={{ width: '100%', maxWidth: '420px', padding: '26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>Create Class</h2>
+              <button className="btn-icon" onClick={() => setShowCreate(false)}><X size={15} /></button>
+            </div>
+            {error && <div style={{ padding: '9px 13px', background: 'var(--rose-dim)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: '7px', color: '#fb7185', fontSize: '13px', marginBottom: '18px' }}>{error}</div>}
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Class Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Class 10-A"
-                  className="input-field"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Class Name</label>
+                <input type="text" required className="input-field" placeholder="e.g. Class 10-A" value={name} onChange={e => setName(e.target.value)} />
               </div>
-
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Description</label>
-                <textarea
-                  className="input-field min-h-[80px]"
-                  placeholder="Brief description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Description</label>
+                <textarea className="input-field" style={{ minHeight: '80px', resize: 'vertical' }} placeholder="Brief description…" value={description} onChange={e => setDescription(e.target.value)} />
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Class
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Enroll Student Modal */}
-      {showAssignModal && (
+      {/* Enroll Modal */}
+      {showEnroll && (
         <div className="modal-overlay">
-          <div
-            className="w-full max-w-md rounded-2xl p-7 space-y-5"
-            style={{
-              background: 'rgba(14, 10, 26, 0.98)',
-              border: '1px solid rgba(139,92,246,0.35)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
-            }}
-          >
-            <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Enroll Student into Class
-            </h3>
-            
-            <form onSubmit={handleAssignStudent} className="space-y-4">
+          <div className="modal-card" style={{ width: '100%', maxWidth: '420px', padding: '26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>Enroll Student</h2>
+              <button className="btn-icon" onClick={() => setShowEnroll(false)}><X size={15} /></button>
+            </div>
+            <form onSubmit={handleEnroll} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Select Class</label>
-                <select
-                  required
-                  className="input-field"
-                  value={selectedClassId}
-                  onChange={(e) => setSelectedClassId(e.target.value)}
-                >
-                  <option value="">-- Choose Class --</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Select Class</label>
+                <select required className="input-field" value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>
+                  <option value="">— Choose class —</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Select Student</label>
-                <select
-                  required
-                  className="input-field"
-                  value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                >
-                  <option value="">-- Choose Student --</option>
-                  {students.map((s) => (
-                    <option key={s.id} value={s.id}>{s.fullName} ({s.email})</option>
-                  ))}
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)', marginBottom: '6px' }}>Select Student</label>
+                <select required className="input-field" value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)}>
+                  <option value="">— Choose student —</option>
+                  {students.map(s => <option key={s.id} value={s.id}>{s.fullName} ({s.email})</option>)}
                 </select>
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAssignModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Enroll Student
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEnroll(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Enroll</button>
               </div>
             </form>
           </div>

@@ -161,6 +161,7 @@ public class SubmissionServiceTests
 
         context.Assignments.Add(assignment);
         context.Submissions.Add(submission);
+        context.Users.Add(new User { Id = studentId, Email = "student@test.com", FullName = "Test Student", Role = UserRole.Student });
         await context.SaveChangesAsync();
 
         var service = new SubmissionService(context);

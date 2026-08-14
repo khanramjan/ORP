@@ -49,16 +49,40 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// DbContext configuration (PostgreSQL with fallback to InMemory for quick test execution)
+// DbContext configuration (PostgreSQL with automatic fallback to InMemory if PostgreSQL server is not running)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+bool isPostgresAvailable = false;
+
+if (!string.IsNullOrEmpty(connectionString) && !connectionString.Contains("Memory"))
+{
+    try
+    {
+        var csBuilder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+        using var client = new System.Net.Sockets.TcpClient();
+        var host = string.IsNullOrEmpty(csBuilder.Host) ? "127.0.0.1" : csBuilder.Host;
+        var port = csBuilder.Port > 0 ? csBuilder.Port : 5432;
+
+        var connectTask = client.ConnectAsync(host, port);
+        if (connectTask.Wait(500) && client.Connected)
+        {
+            isPostgresAvailable = true;
+        }
+    }
+    catch
+    {
+        isPostgresAvailable = false;
+    }
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    if (!string.IsNullOrEmpty(connectionString) && !connectionString.Contains("Memory"))
+    if (isPostgresAvailable)
     {
         options.UseNpgsql(connectionString, b => b.MigrationsAssembly("AssignmentMS.Infrastructure"));
     }
     else
     {
+        Console.WriteLine("[INFO] PostgreSQL server not running on localhost:5432. Falling back to In-Memory Database.");
         options.UseInMemoryDatabase("AssignmentDb");
     }
 });
@@ -153,8 +177,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning(ex, "Database auto-migration skipped or failed. Ensure database server is running.");
-        dbContext.Database.EnsureCreated();
+        app.Logger.LogWarning(ex, "Database auto-migration failed or skipped.");
     }
 }
 

@@ -1,2 +1,6 @@
 <Solution>
+  <Project Path="AssignmentMS.API/AssignmentMS.API.csproj" />
+  <Project Path="AssignmentMS.Core/AssignmentMS.Core.csproj" />
+  <Project Path="AssignmentMS.Infrastructure/AssignmentMS.Infrastructure.csproj" />
+  <Project Path="AssignmentMS.Tests/AssignmentMS.Tests.csproj" />
 </Solution>
