@@ -24,7 +24,7 @@ services:
       - "5000:5000"
     environment:
       - ConnectionStrings__DefaultConnection=Host=db;Database=assignment_ms;Username=postgres;Password=postgrespassword
-      - Jwt__Secret=SuperSecretKeyForJwtTokenGeneration2026AssignmentMSApp!
+      - Jwt__Secret=DevelopmentDefaultJwtSigningSecretKey_ReplaceInProduction_32Bytes!
       - Jwt__Issuer=AssignmentMS.API
       - Jwt__Audience=AssignmentMS.Frontend
     depends_on:

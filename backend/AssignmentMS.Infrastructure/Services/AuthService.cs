@@ -33,7 +33,7 @@ public class AuthService : IAuthService
             return null;
 
         var tokenHandler = new JwtSecurityTokenHandler();
-        var secret = _configuration["Jwt:Secret"] ?? "SuperSecretKeyForJwtTokenGeneration2026AssignmentMSApp!";
+        var secret = _configuration["Jwt:Secret"] ?? "DevelopmentDefaultJwtSigningSecretKey_ReplaceInProduction_32Bytes!";
         var key = Encoding.UTF8.GetBytes(secret);
         var expiryHours = int.TryParse(_configuration["Jwt:ExpiryInHours"], out var h) ? h : 24;
         var expiresAt = DateTime.UtcNow.AddHours(expiryHours);

@@ -96,7 +96,7 @@ builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 builder.Services.AddScoped<ISubmissionService, SubmissionService>();
 
 // JWT Authentication
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "SuperSecretKeyForJwtTokenGeneration2026AssignmentMSApp!";
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "DevelopmentDefaultJwtSigningSecretKey_ReplaceInProduction_32Bytes!";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AssignmentMS.API";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AssignmentMS.Frontend";
 
