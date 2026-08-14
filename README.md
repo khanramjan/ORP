@@ -1,108 +1,122 @@
-# # ORP — Assignment & Submission Management System
+# 🎓 EduAssign — Academic Assignment & Submission Management System
 
-A role-based web application for schools and colleges designed for evaluating student understanding, managing courses, creating assignments, submitting work, and providing structured marks and teacher feedback.
-
-Developed for **OnnoRokom Projukti Limited** recruitment project.
+> A role-based academic platform built for **OnnoRokom Projukti Limited** recruitment assessment. Enables institutions to manage users, classes, and subjects, create and publish assignments, submit coursework, and conduct teacher evaluations with structured marks and remarks.
 
 ---
 
-## 🌟 Main Features
+## 🌟 Key Features
 
-- 🔐 **JWT Role-Based Authentication & Authorization** (Admin, Teacher, Student)
-- 🏫 **Class & Subject Administration**: Map classes, assign subjects, and enroll students & teachers.
-- 📝 **Assignment Lifecycle Management**: Create assignments with title, description, max marks, deadline, and draft/published status toggle.
-- 📤 **Submission Workflow**: Enforce deadline checks, single submission rules, late submission flags, and pre-deadline updates.
-- 🎯 **Review & Grading**: Teachers evaluate submissions, assign marks (validated against max marks), and write feedback comments.
-- 📊 **Role-Specific Dashboards**: Tailored real-time metrics and quick actions for each user role.
-- 🛡️ **Comprehensive API Security & Input Validation**: Validation filters, global error handling, and Swagger documentation.
+### 🔐 Authentication & Security
+- **JWT Authentication**: Secure role-based authorization for **Admin**, **Teacher**, and **Student** roles.
+- **BCrypt Password Hashing**: Passwords stored securely using industry-standard salted hashes.
+- **Demo Quick Access**: One-click quick fill login cards on the login portal for instant evaluator testing.
+
+### 🏫 Administrative Workspaces (Admin)
+- **User Management**: Filter by role, create new accounts, and delete users.
+- **Class Management**: Create class sections, view student/subject metrics, and enroll students.
+- **Subject Management**: Map subjects to classes and assign dedicated teachers.
+
+### 📝 Coursework & Evaluation Workspaces (Teacher)
+- **Assignment Lifecycle**: Create assignments with title, instructions, target class, subject, max marks, deadline, and late submission flags.
+- **Publish / Draft Toggle**: Seamless single-click status toggling (`Draft` vs `Published`).
+- **Review & Grading Drawer**: View student answers, check attachment links, assign numerical marks (validated against max marks), and write faculty remarks.
+
+### 🎓 Student Learning Portal (Student)
+- **Coursework Feed**: View active assignments with color-coded deadline urgency and max mark indicators.
+- **Submission Workflow**: Enforce deadline checks, single submission rules, late submission detection, and pre-evaluation updates.
+- **Feedback & Grade Cards**: Track submission statuses, percentage scores, and teacher remarks.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Layer | Technology |
+| Layer | Technologies & Frameworks |
 |---|---|
-| **Frontend** | Next.js 14+ (App Router), React 19, TypeScript, Vanilla CSS Design System, Axios, Lucide Icons |
-| **Backend** | ASP.NET Core Web API (.NET 10), C#, Entity Framework Core, JWT Bearer Auth, BCrypt Password Hashing, Swashbuckle Swagger |
-| **Database** | PostgreSQL (supported with automatic EF Core Migrations and In-Memory fallback for testing) |
-| **Testing** | xUnit, Moq, EF Core InMemory |
+| **Frontend** | Next.js 15 (App Router), React 19, TypeScript, Inter & JetBrains Mono Fonts, Lucide Icons, Vanilla CSS Tokens |
+| **Backend** | ASP.NET Core Web API (.NET 10), C#, Entity Framework Core, JWT Bearer Auth, BCrypt.Net, Swashbuckle Swagger |
+| **Database** | PostgreSQL 16 (with automatic EF Core Migrations and In-Memory fallback for standalone evaluation) |
+| **Testing** | xUnit, Moq, EF Core In-Memory Test Provider |
+| **Containerization** | Docker, Docker Compose |
 
 ---
 
-## 🔑 Demo Credentials
+## 🔑 Pre-Seeded Evaluation Accounts
 
-| Role | Email | Password | Scope / Permissions |
+| Role | Email | Password | Access Scope |
 |---|---|---|---|
-| **Admin** | `admin@school.com` | `Admin@123` | Full access: user management, class creation, subject mapping, student/teacher enrollment |
-| **Teacher** | `teacher@school.com` | `Teacher@123` | Create & publish assignments, view class submissions, grade & provide feedback |
-| **Student** | `student@school.com` | `Student@123` | View class assignments, submit answers before deadline, view marks & feedback |
+| **Admin** | `admin@school.com` | `Admin@123` | Full access: User management, class creation, subject mapping, student & teacher enrollments |
+| **Teacher** | `teacher@school.com` | `Teacher@123` | Create & publish assignments, view class submissions, grade & provide remarks |
+| **Student** | `student@school.com` | `Student@123` | View assigned tasks, submit answers before deadline, view marks & feedback |
 
 ---
 
-## 📁 Project Structure
+## 📁 Repository Architecture
 
-```
+```text
 Onno Rokom Projukti/
 ├── backend/
-│   ├── AssignmentMS.API/             # Web API Controllers, Auth & Middleware
-│   ├── AssignmentMS.Core/            # Domain Entities, DTOs, Enums, Interfaces
-│   ├── AssignmentMS.Infrastructure/  # EF Core DbContext, Migrations, Repositories/Services
-│   ├── AssignmentMS.Tests/           # xUnit Unit Tests
-│   └── AssignmentMS.slnx             # Solution File
+│   ├── AssignmentMS.API/             # Controllers, Middleware, JWT Configuration, Program.cs
+│   ├── AssignmentMS.Core/            # Entities (User, Class, Subject, Assignment, Submission), DTOs, Interfaces
+│   ├── AssignmentMS.Infrastructure/  # DbContext, EF Migrations, Services (Auth, User, Class, Subject, Assignment, Submission)
+│   ├── AssignmentMS.Tests/           # xUnit Automated Unit Test Suite
+│   └── AssignmentMS.slnx             # C# Solution Manifest
 ├── frontend/
 │   ├── src/
-│   │   ├── app/                      # Next.js App Router Pages (Login, Dashboard, Admin, Teacher, Student)
-│   │   ├── components/               # Navbar, Sidebar, Reusable UI
-│   │   ├── lib/                      # Axios client & AuthContext
-│   │   └── types/                    # TypeScript interfaces
+│   │   ├── app/                      # Next.js App Router (Login, Dashboard, Admin, Teacher, Student)
+│   │   ├── components/               # Navbar, Sidebar, Reusable UI Components
+│   │   ├── lib/                      # Axios API Client & AuthContext Provider
+│   │   └── types/                    # TypeScript Data Contracts & Interfaces
+│   ├── public/                       # Static Assets & Icons
 │   └── package.json
-├── .env.example                      # Environment variables template
-└── README.md                         # Project documentation
+├── docker-compose.yml                # Multi-container orchestration (DB, API, Frontend)
+├── README.md                         # Documentation
+└── .env.example                      # Environment variables template
 ```
 
 ---
 
-## 🚀 Local Setup & Recruiter Evaluation Instructions
+## 🚀 Quick Start Guide
 
-### 🐳 Option A: One-Command Docker Setup (Recommended for Evaluators)
+### Option 1: One-Command Docker Compose (Recommended)
 
-When cloning the repository, you can launch the **entire stack** (PostgreSQL Database, ASP.NET Core Web API, and Next.js Frontend) using a single command:
+Launch the entire stack (Database, API, and Frontend) in containerized isolation:
 
 ```bash
 docker compose up --build
 ```
 
-- **Frontend App**: Open [http://localhost:3000](http://localhost:3000)
-- **Backend Swagger API Docs**: Open [http://localhost:5000/swagger](http://localhost:5000/swagger)
-- **PostgreSQL Database**: Accessible on `localhost:5432` (`assignment_ms` database)
+- 🌐 **Frontend App**: [http://localhost:3000](http://localhost:3000)
+- 📚 **Swagger API Docs**: [http://localhost:5000/swagger](http://localhost:5000/swagger)
+- 🗄️ **PostgreSQL DB**: `localhost:5432` (`assignment_ms` database)
 
 ---
 
-### 📦 Option B: Docker PostgreSQL Database + Local Code Execution
+### Option 2: Local Code Execution
 
-If you prefer running the code locally:
-
-#### 1. Start PostgreSQL Container
+#### 1. Start Database Container
 ```bash
-docker compose up -d postgres
+docker compose up -d db
 ```
 
-#### 2. Run Backend API
+#### 2. Run Backend API (.NET 10)
 ```bash
 cd backend/AssignmentMS.API
 dotnet run
 ```
-> The API auto-detects PostgreSQL on port 5432, executes migrations, and seeds demo accounts (`admin@school.com`, `teacher@school.com`, `student@school.com`).
+> *Note: If PostgreSQL is not running locally on port 5432, the API automatically falls back to an in-memory database with pre-seeded test data.*
 
-#### 3. Run Frontend
+#### 3. Run Frontend (Next.js 15)
 ```bash
 cd frontend
 npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-### 🧪 Option C: Running Unit Tests
+## 🧪 Unit Testing
+
+Run the automated xUnit test suite covering core services and domain rules:
 
 ```bash
 cd backend
@@ -111,17 +125,7 @@ dotnet test
 
 ---
 
-## 📐 Design Assumptions & Decision Rationale
+## 📄 License & Credits
 
-1. **Deterministic Pre-Seeded Users**: Pre-hashed demo credentials are created on database setup to enable instant testing without manual registration.
-2. **Submission Constraints**:
-   - Each student can make one submission per assignment.
-   - Students can update their submission before the deadline, provided the teacher has not yet completed evaluation (`Reviewed` status).
-   - Submissions after the deadline are rejected unless `AllowLateSubmission` is enabled by the teacher.
-3. **Marks Validation**: Assigned marks cannot exceed `MaxMarks`.
-
----
-
-## 📄 License & Attribution
-
-© 2026 OnnoRokom Projukti Limited. Built for Assistant Software Engineer recruitment assessment.
+Developed for **OnnoRokom Projukti Limited** recruitment evaluation.  
+© 2026 EduAssign. All rights reserved.
